@@ -19,3 +19,11 @@ class TranscriptionController:
         if self.thread is not None:
             self.thread.join()  # Wait for the transcription thread to finish
             self.thread = None  # Reset the thread reference
+    
+    def clear_transcription(self):
+        # No session ID needed to clear the transcription
+        self.transcriber.clear_transcription()
+        
+    
+        
+        
