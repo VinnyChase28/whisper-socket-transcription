@@ -11,7 +11,8 @@ from time import sleep
 from sys import platform
 
 class WhisperTranscriber:
-    def __init__(self, model='medium', non_english=False, energy_threshold=1000, record_timeout=2, phrase_timeout=0.1, default_microphone=None):
+    def __init__(self, socketio, model='medium', non_english=False, energy_threshold=1000, record_timeout=2, phrase_timeout=0.1, default_microphone=None):
+        self.socketio = socketio 
         self.model_name = model
         self.non_english = non_english
         self.energy_threshold = energy_threshold
@@ -48,13 +49,16 @@ class WhisperTranscriber:
     def record_callback(self, recognizer, audio):
         data = audio.get_raw_data()
         self.data_queue.put(data)
+    
+    def clear_transcription(self):
+        self.transcription = ['']
 
-    def start_transcription(self):
-        self.running = True  # Enable the transcription loop
+    def start_transcription(self, sid):
+        self.running = True
         with self.source:
             self.recorder.adjust_for_ambient_noise(self.source)
         self.recorder.listen_in_background(self.source, self.record_callback, phrase_time_limit=self.record_timeout)
-
+    
         while self.running:
             try:
                 now = datetime.utcnow()
@@ -77,16 +81,15 @@ class WhisperTranscriber:
                         self.transcription[-1] = text
 
                     os.system('cls' if os.name=='nt' else 'clear')
-                    for line in self.transcription:
-                        emit('transcription_update', {'text': text})
-                    print('', end='', flush=True)
+                    print("\n".join(self.transcription))  # Print the current transcription to the console
+
+                    # Use the socketio instance to emit messages, providing the correct context
+                    self.socketio.emit('transcription_update', {'text': text}, room=sid)
 
                     sleep(0.1)
             except KeyboardInterrupt:
                 break
 
-        print("\n\nTranscription:")
-        for line in self.transcription:
-            emit('transcription_update', {'line': line})
+        self.socketio.emit('final_transcription', {'lines': self.transcription}, room=sid)
             
 
