@@ -4,7 +4,7 @@ import numpy as np
 import speech_recognition as sr
 import whisper
 import torch
-
+from flask_socketio import emit
 from datetime import datetime, timedelta
 from queue import Queue
 from time import sleep
@@ -23,6 +23,7 @@ class WhisperTranscriber:
         self.phrase_time = None
         self.initialize_model()
         self.initialize_recorder()
+        self.running = False
 
     def initialize_model(self):
         model = self.model_name
@@ -49,11 +50,12 @@ class WhisperTranscriber:
         self.data_queue.put(data)
 
     def start_transcription(self):
+        self.running = True  # Enable the transcription loop
         with self.source:
             self.recorder.adjust_for_ambient_noise(self.source)
         self.recorder.listen_in_background(self.source, self.record_callback, phrase_time_limit=self.record_timeout)
 
-        while True:
+        while self.running:
             try:
                 now = datetime.utcnow()
                 if not self.data_queue.empty():
@@ -76,7 +78,7 @@ class WhisperTranscriber:
 
                     os.system('cls' if os.name=='nt' else 'clear')
                     for line in self.transcription:
-                        print(line)
+                        emit('transcription_update', {'text': text})
                     print('', end='', flush=True)
 
                     sleep(0.1)
@@ -85,4 +87,6 @@ class WhisperTranscriber:
 
         print("\n\nTranscription:")
         for line in self.transcription:
-            print(line)
+            emit('transcription_update', {'line': line})
+            
+
