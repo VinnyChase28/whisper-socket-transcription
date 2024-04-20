@@ -1,3 +1,4 @@
 # Real Time Whisper Transcription
 
-If youre having trouble with websockets, restart flask. then, refresh the front end. transcription should resume. 
+Uses your Windows PC audio to transcribe text in real time over sockets. You can hit an endpoint to start streaming speech to text to a client, using your local hardware (i have a 4090 GPU)
+
