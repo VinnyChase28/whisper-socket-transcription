@@ -37,14 +37,21 @@ class WhisperTranscriber:
         self.recorder.energy_threshold = self.energy_threshold
         self.recorder.dynamic_energy_threshold = False
 
-        if 'linux' in platform and self.default_microphone:
-            for index, name in enumerate(sr.Microphone.list_microphone_names()):
-                if self.default_microphone in name:
-                    mic_index = 16  # Replace 16 with the correct index if different
-                    self.source = sr.Microphone(sample_rate=16000, device_index=mic_index)
-                    break
+        # List all microphone names and their indices
+        for index, name in enumerate(sr.Microphone.list_microphone_names()):
+            print(f"Index: {index}, Microphone: {name}")
+
+        # Set the device index for the virtual audio cable
+        mic_index = None
+        for index, name in enumerate(sr.Microphone.list_microphone_names()):
+            if "VoiceMeeter Output" in name or "CABLE Output" in name:
+                mic_index = index
+                break
+
+        if mic_index is not None:
+            self.source = sr.Microphone(sample_rate=16000, device_index=mic_index)
         else:
-            self.source = sr.Microphone(sample_rate=16000)
+            raise ValueError("Virtual audio cable not found. Please ensure it is installed and configured correctly.")
 
     def record_callback(self, recognizer, audio):
         data = audio.get_raw_data()
